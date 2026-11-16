@@ -1,0 +1,593 @@
+<title>PiscaPaga</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Lilita+One&family=DM+Sans:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+  /* Layout: single centered column, big eye hero, payment modal overlay */
+  :root {
+    --bg: #0c0a1a;
+    --fg: #e8e4f0;
+    --surface: #1a1630;
+    --accent: #6c5ce7;
+    --iris: #2d98da;
+    --iris-dark: #1a6fa0;
+    --skin: #e8b88a;
+    --skin-shadow: #c4956a;
+    --danger: #e74c3c;
+    --success: #2ecc71;
+    --muted: #6b6490;
+    --display: 'Lilita One', Impact, sans-serif;
+    --body: 'DM Sans', system-ui, sans-serif;
+    color-scheme: dark;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f0ff;
+      --fg: #1a1630;
+      --surface: #e8e0f8;
+      --accent: #6c5ce7;
+      --iris: #2d98da;
+      --iris-dark: #1a6fa0;
+      --skin: #e8b88a;
+      --skin-shadow: #c4956a;
+      --danger: #c0392b;
+      --success: #27ae60;
+      --muted: #8a82a8;
+      color-scheme: light;
+    }
+  }
+
+  :root[data-theme="light"] {
+    --bg: #f5f0ff;
+    --fg: #1a1630;
+    --surface: #e8e0f8;
+    --accent: #6c5ce7;
+    --iris: #2d98da;
+    --iris-dark: #1a6fa0;
+    --skin: #e8b88a;
+    --skin-shadow: #c4956a;
+    --danger: #c0392b;
+    --success: #27ae60;
+    --muted: #8a82a8;
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--body);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 24px;
+    text-align: center;
+    gap: 24px;
+    box-sizing: border-box;
+  }
+
+  h1 {
+    font-family: var(--display);
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    margin: 0;
+    text-wrap: balance;
+    letter-spacing: -0.02em;
+  }
+
+  h1 span { color: var(--accent) }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin: -12px 0 0;
+    font-style: italic;
+  }
+
+  .eye-container {
+    position: relative;
+    width: min(320px, 80vw);
+    aspect-ratio: 2 / 1.2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .eye-white {
+    width: 100%;
+    height: 100%;
+    background: #fff;
+    border-radius: 50% / 60%;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(108, 92, 231, 0.3), inset 0 4px 20px rgba(0,0,0,0.15);
+    transition: height 0.15s ease-in;
+  }
+
+  .eye-white.closed {
+    height: 8%;
+    border-radius: 50% / 50%;
+    background: var(--skin);
+    box-shadow: 0 0 20px rgba(108, 92, 231, 0.15);
+  }
+
+  .iris {
+    position: absolute;
+    width: 46%;
+    aspect-ratio: 1;
+    background: radial-gradient(circle at 40% 40%, var(--iris), var(--iris-dark));
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    transition: opacity 0.1s;
+  }
+
+  .iris::after {
+    content: '';
+    position: absolute;
+    width: 50%;
+    aspect-ratio: 1;
+    background: #111;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+
+  .iris::before {
+    content: '';
+    position: absolute;
+    width: 22%;
+    aspect-ratio: 1;
+    background: rgba(255,255,255,0.8);
+    border-radius: 50%;
+    top: 22%;
+    left: 28%;
+  }
+
+  .eye-white.closed .iris { opacity: 0 }
+
+  .eyelid-top, .eyelid-bottom {
+    position: absolute;
+    left: -2%;
+    width: 104%;
+    height: 50%;
+    background: var(--skin);
+    transition: transform 0.15s ease-in;
+    z-index: 2;
+  }
+
+  .eyelid-top {
+    top: 0;
+    transform: translateY(-92%);
+    border-radius: 0 0 50% 50% / 0 0 40% 40%;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  }
+
+  .eyelid-bottom {
+    bottom: 0;
+    transform: translateY(92%);
+    border-radius: 50% 50% 0 0 / 40% 40% 0 0;
+  }
+
+  .eye-white.closed .eyelid-top { transform: translateY(0%) }
+  .eye-white.closed .eyelid-bottom { transform: translateY(0%) }
+
+  .lashes {
+    position: absolute;
+    top: -8px;
+    left: 10%;
+    width: 80%;
+    display: flex;
+    justify-content: space-around;
+    z-index: 3;
+    transition: transform 0.15s ease-in;
+    transform-origin: bottom center;
+  }
+
+  .lash {
+    width: 3px;
+    height: 14px;
+    background: #3a2518;
+    border-radius: 2px;
+    transform-origin: bottom center;
+  }
+
+  .lash:nth-child(1) { transform: rotate(-30deg) }
+  .lash:nth-child(2) { transform: rotate(-18deg) }
+  .lash:nth-child(3) { transform: rotate(-6deg) }
+  .lash:nth-child(4) { transform: rotate(6deg) }
+  .lash:nth-child(5) { transform: rotate(18deg) }
+  .lash:nth-child(6) { transform: rotate(30deg) }
+
+  .eye-white.closed .lashes { transform: translateY(70%) }
+
+  .controls {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  button {
+    font-family: var(--display);
+    font-size: 1.1rem;
+    padding: 14px 32px;
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.1s;
+    letter-spacing: 0.02em;
+  }
+
+  button:active { transform: scale(0.96) }
+
+  .btn-close-eye {
+    background: var(--success);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(46, 204, 113, 0.3);
+  }
+
+  .btn-open-eye {
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 4px 16px rgba(108, 92, 231, 0.3);
+  }
+
+  .btn-open-eye:disabled {
+    background: var(--muted);
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  .price-tag {
+    display: block;
+    font-family: var(--body);
+    font-size: 0.7rem;
+    opacity: 0.85;
+    margin-top: 2px;
+  }
+
+  .status {
+    font-size: 1rem;
+    padding: 10px 20px;
+    border-radius: 10px;
+    background: var(--surface);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .status .label { color: var(--muted); font-size: 0.85rem }
+  .status .balance { font-weight: 600; color: var(--accent); font-size: 1.3rem }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: max(16px, env(safe-area-inset-left, 0px));
+    backdrop-filter: blur(4px);
+  }
+
+  .modal-overlay.active { display: flex }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 20px;
+    padding: 32px 28px;
+    max-width: 380px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .modal h2 {
+    font-family: var(--display);
+    font-size: 1.5rem;
+    margin: 0;
+  }
+
+  .modal p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.5;
+  }
+
+  .plans {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .plan {
+    background: var(--bg);
+    border: 2px solid transparent;
+    border-radius: 12px;
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border-color 0.15s;
+    font-family: var(--body);
+    font-size: 0.95rem;
+    color: var(--fg);
+    text-align: left;
+  }
+
+  .plan:hover { border-color: var(--accent) }
+
+  .plan-name { font-weight: 600 }
+  .plan-price { color: var(--accent); font-weight: 600; white-space: nowrap }
+  .plan-desc { font-size: 0.75rem; color: var(--muted) }
+
+  .btn-cancel {
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 8px;
+    font-family: var(--body);
+  }
+
+  .btn-cancel:hover { color: var(--fg) }
+
+  .toast {
+    position: fixed;
+    bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+    left: 50%;
+    transform: translateX(-50%) translateY(120%);
+    background: var(--surface);
+    color: var(--fg);
+    padding: 12px 24px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    z-index: 200;
+    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    white-space: nowrap;
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0) }
+
+  .stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+
+  .stats span { font-variant-numeric: tabular-nums }
+  .stats strong { color: var(--fg) }
+
+  .fine-print {
+    font-size: 0.7rem;
+    color: var(--muted);
+    max-width: 340px;
+    line-height: 1.5;
+    opacity: 0.7;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      transition-duration: 0.01ms !important;
+    }
+  }
+</style>
+
+<h1>Pisca<span>Paga</span></h1>
+<p class="subtitle">O app #1 de piscar no mundo*</p>
+
+<div class="status">
+  <div class="label">Saldo disponivel</div>
+  <div class="balance" id="balance">R$ 0,00</div>
+</div>
+
+<div class="eye-container">
+  <div class="eye-white" id="eye">
+    <div class="eyelid-top">
+      <div class="lashes">
+        <div class="lash"></div><div class="lash"></div><div class="lash"></div>
+        <div class="lash"></div><div class="lash"></div><div class="lash"></div>
+      </div>
+    </div>
+    <div class="iris" id="iris"></div>
+    <div class="eyelid-bottom"></div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-close-eye" id="btnClose" onclick="closeEye()">
+    Fechar Olho
+    <span class="price-tag">GRATIS!</span>
+  </button>
+  <button class="btn-open-eye" id="btnOpen" onclick="tryOpenEye()">
+    Abrir Olho
+    <span class="price-tag">R$ 4,99</span>
+  </button>
+</div>
+
+<div class="stats">
+  <span>Piscadas: <strong id="blinkCount">0</strong></span>
+  <span>Gasto total: <strong id="totalSpent">R$ 0,00</strong></span>
+</div>
+
+<p class="fine-print">
+  *Fonte: eu mesmo. Fechar o olho e sempre gratis. Abrir custa R$ 4,99 por piscada.
+  Nao aceitamos reclamacoes. Termos de uso: voce ja aceitou ao ler isso.
+</p>
+
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h2>Olho Travado!</h2>
+    <p>Seu olho esta fechado e voce precisa pagar para abrir. Escolha seu plano:</p>
+    <div class="plans">
+      <button class="plan" onclick="pay('basic')">
+        <div>
+          <div class="plan-name">Piscada Avulsa</div>
+          <div class="plan-desc">1 abertura de olho</div>
+        </div>
+        <div class="plan-price">R$ 4,99</div>
+      </button>
+      <button class="plan" onclick="pay('pack')">
+        <div>
+          <div class="plan-name">Pacote Piscadinha</div>
+          <div class="plan-desc">5 aberturas (economize 2%!)</div>
+        </div>
+        <div class="plan-price">R$ 24,45</div>
+      </button>
+      <button class="plan" onclick="pay('premium')">
+        <div>
+          <div class="plan-name">Olho Premium VIP</div>
+          <div class="plan-desc">10 aberturas + 1 lacrimejada gratis</div>
+        </div>
+        <div class="plan-price">R$ 47,90</div>
+      </button>
+      <button class="plan" onclick="pay('lifetime')">
+        <div>
+          <div class="plan-name">Vitalicio*</div>
+          <div class="plan-desc">*Valido por 24 horas</div>
+        </div>
+        <div class="plan-price">R$ 199,90</div>
+      </button>
+    </div>
+    <button class="btn-cancel" onclick="closeModal()">Continuar com o olho fechado (gratis)</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const eye = document.getElementById('eye');
+  const btnClose = document.getElementById('btnClose');
+  const btnOpen = document.getElementById('btnOpen');
+  const modal = document.getElementById('modal');
+  const balanceEl = document.getElementById('balance');
+  const blinkCountEl = document.getElementById('blinkCount');
+  const totalSpentEl = document.getElementById('totalSpent');
+  const toastEl = document.getElementById('toast');
+  const iris = document.getElementById('iris');
+
+  let isOpen = true;
+  let credits = 0;
+  let blinks = 0;
+  let totalSpent = 0;
+
+  const prices = {
+    basic: { amount: 4.99, opens: 1 },
+    pack: { amount: 24.45, opens: 5 },
+    premium: { amount: 47.90, opens: 10 },
+    lifetime: { amount: 199.90, opens: 50 }
+  };
+
+  const messages = [
+    'Parabens! Voce pode ver de novo!',
+    'Olho aberto com sucesso! Aproveite a visao.',
+    'Transacao aprovada. A luz e linda, ne?',
+    'Bem-vindo de volta ao mundo visual!',
+    'Sua retina agradece. Seu bolso nem tanto.',
+    'Visao restaurada! Que luxo poder enxergar.',
+    'Olho operacional. Nao pisque de novo tao cedo.',
+    'Pagamento confirmado. Use seu olho com sabedoria.'
+  ];
+
+  const closedMessages = [
+    'Olho fechado! Escuridao total. Gratis!',
+    'Economia pura. Voce nao precisa ver mesmo.',
+    'Pronto! Agora tudo esta escuro. De nada.',
+    'Olho fechado com sucesso. Zero reais.',
+    'A escuridao abraca voce. Sem custo.'
+  ];
+
+  function fmt(v) {
+    return 'R$ ' + v.toFixed(2).replace('.', ',');
+  }
+
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add('show');
+    setTimeout(() => toastEl.classList.remove('show'), 2500);
+  }
+
+  function updateUI() {
+    balanceEl.textContent = fmt(credits * 4.99);
+    blinkCountEl.textContent = blinks;
+    totalSpentEl.textContent = fmt(totalSpent);
+
+    btnClose.disabled = !isOpen;
+    btnOpen.disabled = isOpen;
+
+    if (isOpen) {
+      eye.classList.remove('closed');
+    } else {
+      eye.classList.add('closed');
+    }
+  }
+
+  function closeEye() {
+    if (!isOpen) return;
+    isOpen = false;
+    updateUI();
+    showToast(closedMessages[Math.floor(Math.random() * closedMessages.length)]);
+  }
+
+  function tryOpenEye() {
+    if (isOpen) return;
+    if (credits > 0) {
+      credits--;
+      isOpen = true;
+      blinks++;
+      updateUI();
+      showToast(messages[Math.floor(Math.random() * messages.length)]);
+    } else {
+      modal.classList.add('active');
+    }
+  }
+
+  function pay(plan) {
+    const p = prices[plan];
+    totalSpent += p.amount;
+    credits += p.opens;
+    modal.classList.remove('active');
+
+    credits--;
+    isOpen = true;
+    blinks++;
+    updateUI();
+
+    const msg = plan === 'lifetime'
+      ? 'Vitalicio ativado! (expira amanha)'
+      : messages[Math.floor(Math.random() * messages.length)];
+    showToast(msg);
+  }
+
+  function closeModal() {
+    modal.classList.remove('active');
+    showToast('Ok, fica no escuro entao...');
+  }
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isOpen) return;
+    const rect = eye.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = (e.clientX - cx) / (rect.width / 2);
+    const dy = (e.clientY - cy) / (rect.height / 2);
+    const maxMove = 12;
+    const x = Math.max(-1, Math.min(1, dx)) * maxMove;
+    const y = Math.max(-1, Math.min(1, dy)) * maxMove;
+    iris.style.transform = `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`;
+  });
+
+  updateUI();
+</script>
